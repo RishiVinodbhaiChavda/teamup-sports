@@ -57,14 +57,14 @@ def send_otp():
             'note': 'Check your email inbox and spam folder'
         })
     else:
-        # Email failed - return error with details
-        print(f"⚠️  Email sending failed: {message}")
-        print(f"💡 User can still use OTP from console for testing\n")
+        # Fallback for Render Free Tier blocking external SMTP
+        print(f"⚠️ Email sending failed/blocked: {message}")
+        print(f"💡 Defaulting OTP to 123456 for DEMO PURPOSES\n")
+        OTP_STORE[email]['otp'] = '123456'
         return jsonify({
-            'error': f'Failed to send email: {message}',
-            'note': 'Please check your email configuration or contact support',
-            'debug': 'OTP is printed in server console for testing'
-        }), 500
+            'message': 'OTP System Bypassed (Server does not support email). Please use OTP: 123456',
+            'note': 'Use the code 123456 to continue.'
+        }), 200
 
 
 @auth_bp.route('/verify-otp', methods=['POST'])
@@ -350,12 +350,14 @@ def forgot_password():
             'note': 'Check your email inbox and spam folder'
         })
     else:
-        print(f"⚠️  Email sending failed: {message}")
+        # Fallback for Render Free Tier blocking external SMTP
+        print(f"⚠️ Email sending failed/blocked: {message}")
+        print(f"💡 Defaulting Reset OTP to 123456 for DEMO PURPOSES\n")
+        PASSWORD_RESET_STORE[email]['otp'] = '123456'
         return jsonify({
-            'error': f'Failed to send email: {message}',
-            'note': 'Please try again or contact support',
-            'debug': 'OTP is printed in server console for testing'
-        }), 500
+            'message': 'OTP System Bypassed (Server does not support email). Please use OTP: 123456',
+            'note': 'Use the code 123456 to reset your password'
+        }), 200
 
 
 @auth_bp.route('/verify-reset-otp', methods=['POST'])
