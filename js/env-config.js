@@ -6,4 +6,4 @@
 // actual Render service URL, then re-deploy to Netlify.
 // ============================================================
 
-window.BACKEND_URL = 'https://teamup-sports-api.onrender.com';
+window.BACKEND_URL = 'https://teamup-sports.onrender.com';

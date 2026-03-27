@@ -4,7 +4,7 @@
  */
 
 const API_CONFIG = {
-    BASE_URL: (window.BACKEND_URL || 'http://localhost:5000') + '/api',
+    BASE_URL: ((window.BACKEND_URL ? window.BACKEND_URL.replace(/\/$/, '') : 'http://localhost:5000')) + '/api',
     TIMEOUT: 30000
 };
 
