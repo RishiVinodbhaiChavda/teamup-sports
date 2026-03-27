@@ -30,22 +30,23 @@
         </div>
     </nav>
 
-    <main class="container" style="padding-top: 100px; padding-bottom: 60px;">
-        <div style="max-width: 1200px; margin: 0 auto;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: var(--space-8); flex-wrap: wrap; gap: var(--space-4);">
-                <div>
-                    <h1 class="page-title" style="display: flex; align-items: center; gap: var(--space-3);">
-                        <span style="position: relative; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: rgba(239, 68, 68, 0.15); border-radius: 50%; box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);">
-                            <span style="width: 14px; height: 14px; background: #ef4444; border-radius: 50%; animation: pulse 2s infinite;"></span>
-                        </span>
-                        Watch <span class="text-gradient">Live Action</span>
-                    </h1>
-                    <p class="page-subtitle" style="margin-bottom: 0;">Experience the best matches nearby in real-time</p>
-                </div>
-                <div class="form-group" style="margin: 0; min-width: 200px;">
-                    <select id="cityFilter" class="form-input form-select" style="background-color: var(--glass-bg); border-color: var(--border-default); backdrop-filter: blur(12px);">
-                        <option value="">All Cities</option>
-                    </select>
+    <main class="container watch-live-page">
+            <div class="page-header">
+                <div class="page-header-content">
+                    <div>
+                        <h1 class="page-title">
+                            <span class="live-indicator">
+                                <span class="live-dot"></span>
+                            </span>
+                            Watch <span class="text-gradient">Live Action</span>
+                        </h1>
+                        <p class="page-subtitle">Experience the best matches nearby in real-time</p>
+                    </div>
+                    <div class="form-group filter-group">
+                        <select id="cityFilter" class="form-input form-select">
+                            <option value="">All Cities</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 

@@ -14,7 +14,7 @@ active_streams = {}  # {stream_key: {broadcaster: sid, viewers: [sid]}}
 def init_socketio(app):
     """Initialize SocketIO with the Flask app"""
     global socketio
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
     
     @socketio.on('connect')
     def handle_connect():

@@ -1,0 +1,6 @@
+[build]
+  command = "echo 'Skipping backend build for frontend deployment'"
+  publish = "."
+
+[build.environment]
+  PYTHON_VERSION = "3.11"

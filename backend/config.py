@@ -12,6 +12,12 @@ class Config:
     # Fix for Supabase/Render which provide postgres:// instead of postgresql://
     _db_url = os.environ.get('DATABASE_URL') or \
         'postgresql://postgres:Rishi%402005@localhost:5432/TeamUP_Sports'
+    
+    # Ensure production URLs use sslmode=require
+    if _db_url and 'localhost' not in _db_url and 'sslmode' not in _db_url:
+        separator = '&' if '?' in _db_url else '?'
+        _db_url += f'{separator}sslmode=require'
+        
     SQLALCHEMY_DATABASE_URI = _db_url.replace('postgres://', 'postgresql://', 1) if _db_url.startswith('postgres://') else _db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
@@ -42,9 +48,16 @@ class Config:
     # CORS Settings — add FRONTEND_URL env var on Render to restrict in production
     _frontend_url = os.environ.get('FRONTEND_URL', '')
     CORS_ORIGINS = [
-        'http://localhost:3000', 'http://localhost:5500', 'http://127.0.0.1:5500',
-        *([_frontend_url] if _frontend_url else ['*'])
+        'http://localhost:3000', 
+        'http://localhost:5500', 
+        'http://127.0.0.1:5500',
+        'https://teamup-sports.netlify.app',
+        'https://teamup-sports.netlify.app/',
+        *([_frontend_url] if _frontend_url else [])
     ]
+    # If no specific frontend URL and no specific origins, fallback to * is risky with credentials
+    if not CORS_ORIGINS:
+        CORS_ORIGINS = ['*']
 
 
 class DevelopmentConfig(Config):

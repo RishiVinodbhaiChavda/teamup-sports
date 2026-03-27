@@ -4,7 +4,7 @@ Traditional email/password authentication (no OTP)
 """
 from flask import Blueprint, request, jsonify, current_app
 from database import db
-from models.user import User
+from models.user import User, OTP
 from utils.auth import hash_password, verify_password, generate_token
 from utils.validators import validate_email, validate_phone, validate_password, validate_name
 from utils.email_service import send_otp_email
@@ -13,9 +13,7 @@ from datetime import datetime, timedelta
 
 auth_bp = Blueprint('auth', __name__)
 
-# Simple in-memory store for OTPs
-OTP_STORE = {}
-PASSWORD_RESET_STORE = {}
+# OTP persistence is now managed by the OTP database model
 
 @auth_bp.route('/send-otp', methods=['POST'])
 def send_otp():
@@ -32,12 +30,17 @@ def send_otp():
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'Email already registered'}), 409
         
-    otp = str(random.randint(100000, 999999))
-    OTP_STORE[email] = {
-        'otp': otp,
-        'expires_at': datetime.utcnow() + timedelta(minutes=5),
-        'verified': False
-    }
+    # Create OTP record in database
+    otp_record = OTP(
+        email=email,
+        otp=str(random.randint(100000, 999999)),
+        purpose='register',
+        expires_at=datetime.utcnow() + timedelta(minutes=5)
+    )
+    db.session.add(otp_record)
+    db.session.commit()
+    
+    otp = otp_record.otp
     
     # Print the OTP to the console for easy debugging/testing
     print(f"\n{'='*60}")
@@ -60,7 +63,8 @@ def send_otp():
         # Fallback for Render Free Tier blocking external SMTP
         print(f"⚠️ Email sending failed/blocked: {message}")
         print(f"💡 Defaulting OTP to 123456 for DEMO PURPOSES\n")
-        OTP_STORE[email]['otp'] = '123456'
+        otp_record.otp = '123456'
+        db.session.commit()
         return jsonify({
             'message': 'OTP System Bypassed (Server does not support email). Please use OTP: 123456',
             'note': 'Use the code 123456 to continue.'
@@ -77,19 +81,20 @@ def verify_otp():
     email = data.get('email', '').strip().lower()
     otp = data.get('otp', '').strip()
     
-    if email not in OTP_STORE:
+    otp_record = OTP.query.filter_by(email=email, purpose='register').order_by(OTP.created_at.desc()).first()
+    
+    if not otp_record:
         return jsonify({'error': 'No OTP requested for this email'}), 400
         
-    store_data = OTP_STORE[email]
-    
-    if datetime.utcnow() > store_data['expires_at']:
+    if otp_record.is_expired():
         return jsonify({'error': 'OTP expired'}), 400
         
-    if store_data['otp'] != otp:
+    if otp_record.otp != otp:
         return jsonify({'error': 'Invalid OTP'}), 400
         
     # Mark as verified
-    store_data['verified'] = True
+    otp_record.is_verified = True
+    db.session.commit()
     return jsonify({'message': 'Email verified successfully'})
 
 
@@ -126,7 +131,8 @@ def register():
     if User.query.filter_by(phone=phone).first():
         return jsonify({'error': 'Phone number already registered'}), 409
         
-    if email not in OTP_STORE or not OTP_STORE[email].get('verified'):
+    otp_record = OTP.query.filter_by(email=email, purpose='register', is_verified=True).order_by(OTP.created_at.desc()).first()
+    if not otp_record:
         return jsonify({'error': 'Email must be verified first'}), 400
     
     user = User(
@@ -324,13 +330,17 @@ def forgot_password():
     if user.google_id and not user.password_hash:
         return jsonify({'error': 'This account uses Google Sign-In. Please sign in with Google.'}), 400
     
-    # Generate OTP
-    otp = str(random.randint(100000, 999999))
-    PASSWORD_RESET_STORE[email] = {
-        'otp': otp,
-        'expires_at': datetime.utcnow() + timedelta(minutes=5),
-        'verified': False
-    }
+    # Create Reset OTP record in database
+    otp_record = OTP(
+        email=email,
+        otp=str(random.randint(100000, 999999)),
+        purpose='reset',
+        expires_at=datetime.utcnow() + timedelta(minutes=5)
+    )
+    db.session.add(otp_record)
+    db.session.commit()
+    
+    otp = otp_record.otp
     
     # Print OTP to console
     print(f"\n{'='*60}")
@@ -352,8 +362,11 @@ def forgot_password():
     else:
         # Fallback for Render Free Tier blocking external SMTP
         print(f"⚠️ Email sending failed/blocked: {message}")
+        # Fallback for Render Free Tier blocking external SMTP
+        print(f"⚠️ Email sending failed/blocked: {message}")
         print(f"💡 Defaulting Reset OTP to 123456 for DEMO PURPOSES\n")
-        PASSWORD_RESET_STORE[email]['otp'] = '123456'
+        otp_record.otp = '123456'
+        db.session.commit()
         return jsonify({
             'message': 'OTP System Bypassed (Server does not support email). Please use OTP: 123456',
             'note': 'Use the code 123456 to reset your password'
@@ -370,20 +383,22 @@ def verify_reset_otp():
     email = data.get('email', '').strip().lower()
     otp = data.get('otp', '').strip()
     
-    if email not in PASSWORD_RESET_STORE:
+    otp_record = OTP.query.filter_by(email=email, purpose='reset').order_by(OTP.created_at.desc()).first()
+    
+    if not otp_record:
         return jsonify({'error': 'No reset request found for this email'}), 400
     
-    store_data = PASSWORD_RESET_STORE[email]
-    
-    if datetime.utcnow() > store_data['expires_at']:
-        del PASSWORD_RESET_STORE[email]
+    if otp_record.is_expired():
+        db.session.delete(otp_record)
+        db.session.commit()
         return jsonify({'error': 'OTP expired. Please request a new one'}), 400
     
-    if store_data['otp'] != otp:
+    if otp_record.otp != otp:
         return jsonify({'error': 'Invalid OTP'}), 400
     
     # Mark as verified
-    store_data['verified'] = True
+    otp_record.is_verified = True
+    db.session.commit()
     return jsonify({'message': 'OTP verified successfully'})
 
 
@@ -397,16 +412,14 @@ def reset_password():
     email = data.get('email', '').strip().lower()
     new_password = data.get('password', '')
     
-    if email not in PASSWORD_RESET_STORE:
-        return jsonify({'error': 'No reset request found. Please start over'}), 400
+    otp_record = OTP.query.filter_by(email=email, purpose='reset', is_verified=True).order_by(OTP.created_at.desc()).first()
     
-    store_data = PASSWORD_RESET_STORE[email]
+    if not otp_record:
+        return jsonify({'error': 'No reset request found or OTP not verified. Please start over'}), 400
     
-    if not store_data.get('verified'):
-        return jsonify({'error': 'Please verify OTP first'}), 400
-    
-    if datetime.utcnow() > store_data['expires_at']:
-        del PASSWORD_RESET_STORE[email]
+    if otp_record.is_expired():
+        db.session.delete(otp_record)
+        db.session.commit()
         return jsonify({'error': 'Reset session expired. Please start over'}), 400
     
     # Validate password
@@ -423,7 +436,8 @@ def reset_password():
     db.session.commit()
     
     # Clear reset data
-    del PASSWORD_RESET_STORE[email]
+    db.session.delete(otp_record)
+    db.session.commit()
     
     print(f"\n✅ Password reset successful for: {email}\n")
     

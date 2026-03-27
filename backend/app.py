@@ -45,6 +45,7 @@ def create_app(config_name='default'):
     app.register_blueprint(livestream_bp, url_prefix='/api/livestream')
     
     # Health check endpoint
+    @app.route('/')
     @app.route('/api/health')
     def health_check():
         return {'status': 'healthy', 'message': 'TeamUp Sports API is running'}
@@ -57,6 +58,15 @@ def create_app(config_name='default'):
     @app.errorhandler(413)
     def request_entity_too_large(error):
         return jsonify({'error': 'File too large. Maximum size is 16MB.'}), 413
+
+    # General error handler for production debugging
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        app.logger.error(f"Unhandled Exception: {str(e)}")
+        # In production, don't leak details, but return a clearer message if it's a DB issue
+        if "psycopg2" in str(e) or "SQLAlchemy" in str(e):
+            return jsonify({'error': 'Database connection error. Please check backend logs.'}), 500
+        return jsonify({'error': 'An internal server error occurred.'}), 500
 
     # Platform stats endpoint
     @app.route('/api/stats')
