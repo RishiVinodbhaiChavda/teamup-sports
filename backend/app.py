@@ -60,8 +60,13 @@ def create_app(config_name='default'):
         return jsonify({'error': 'File too large. Maximum size is 16MB.'}), 413
 
     # General error handler for production debugging
+    from werkzeug.exceptions import HTTPException
     @app.errorhandler(Exception)
     def handle_exception(e):
+        # Pass through HTTP errors (like 404) so they return their intended status code
+        if isinstance(e, HTTPException):
+            return e
+
         app.logger.error(f"Unhandled Exception: {str(e)}")
         # In production, don't leak details, but return a clearer message if it's a DB issue
         if "psycopg2" in str(e) or "SQLAlchemy" in str(e):
