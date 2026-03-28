@@ -61,7 +61,7 @@ def get_countries():
         _cache['countries'] = countries
         return jsonify({'countries': countries})
     except Exception as e:
-        print(f"Location Sync Error (Countries): {str(e)}")
+        print(f"[LOCATIONS] Countries API Failed: {str(e)}. Using static fallback.")
         # Fallback to a diverse list of countries
         return jsonify({'countries': FALLBACK_DATA['countries']})
 
@@ -93,7 +93,7 @@ def get_states():
         _cache[cache_key] = states
         return jsonify({'states': states})
     except Exception as e:
-        print(f"Location Sync Error (States for {country}): {str(e)}")
+        print(f"[LOCATIONS] States API Failed for {country}: {str(e)}. Using static fallback.")
         # Fallback for India or return empty
         fallback_key = f'states_{country}'
         return jsonify({'states': FALLBACK_DATA.get(fallback_key, [])})
@@ -127,7 +127,7 @@ def get_cities():
         _cache[cache_key] = cities
         return jsonify({'cities': cities})
     except Exception as e:
-        print(f"Location Sync Error (Cities for {state}, {country}): {str(e)}")
+        print(f"[LOCATIONS] Cities API Failed for {state}, {country}: {str(e)}. Using static fallback.")
         # Fallback for specific Indian states
         fallback_key = f'cities_{country}_{state}'
         return jsonify({'cities': FALLBACK_DATA.get(fallback_key, [])})
