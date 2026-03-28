@@ -48,7 +48,7 @@ def create_app(config_name='default'):
     @app.route('/')
     @app.route('/api/health')
     def health_check():
-        return {'status': 'healthy', 'message': 'TeamUp Sports API is running'}
+        return {'status': 'healthy', 'message': 'TeamUp Sports API - SYNCED V5'}
         
     @app.route('/api/db_test')
     def db_test():
